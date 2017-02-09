@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg"
+    tools:context="com.app.gsmademo.MainActivity">
+
+
+    <TextView
+        android:id="@+id/tv_scope"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Scope: mc_mnv_validate_plus"
+        android:layout_margin="20dp"
+        android:textSize="16sp"
+        android:layout_centerHorizontal="true"
+        android:textColor="@android:color/white"/>
+
+
+    <EditText
+        android:id="@+id/et_mobile_no"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:hint="mobile number"
+        android:inputType="number"
+        android:layout_below="@+id/tv_scope"
+        android:layout_centerHorizontal="true"
+        android:textColor="@android:color/white"
+        android:textColorHint="@android:color/white"
+        android:layout_marginTop="35dp"
+        android:layout_marginLeft="35dp"
+        android:layout_marginRight="35dp"
+        android:background="@null"/>
+
+    <TextView
+        android:id="@+id/tv_verify"
+        android:layout_width="130dp"
+        android:layout_height="40dp"
+        android:text="VERIFY"
+        android:textSize="15sp"
+        android:gravity="center"
+        android:layout_centerHorizontal="true"
+        android:textColor="@android:color/white"
+        android:layout_gravity="center"
+        android:layout_marginTop="20dp"
+        android:layout_below="@+id/et_mobile_no"
+        android:background="@drawable/background_login_no"/>
+
+    <CheckBox
+        android:id="@+id/cb_term_condition"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/tv_verify"
+        android:layout_marginTop="15dp"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
+        android:textSize="15sp"
+        android:textColor="@android:color/white"
+        android:text="I agree to mobile connect Terms &amp; Conditions."
+        android:buttonTint="@android:color/white"/>
+
+</RelativeLayout>
