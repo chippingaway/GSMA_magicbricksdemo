@@ -56,7 +56,8 @@ public class MobileAuthenticationVolley {
     private ProgressDialog mDialog;
     private Context mContext;
     private mobileCallback mMobileCallback;
-    private String state, nounce;
+    public String state, nounce;
+    public String oldnonce;
 
     /**
      * get new Instance of this class
@@ -295,7 +296,7 @@ public class MobileAuthenticationVolley {
                         if (!tokenhit) {
                             tokenhit = true;
                             /*********  hit token Api for  access token ************/
-                            tokenApi(code, client_id, client_secret, new_token_url);
+                            tokenApi(code, client_id, client_secret, new_token_url,state);
                         }
                     } else {
                         if (mDialog.isShowing()) {
@@ -348,7 +349,7 @@ public class MobileAuthenticationVolley {
      * @param token_url     - get from discovery response
      */
 
-    private void tokenApi(final String code, final String client_id, final String client_secret, final String token_url) {
+    private void tokenApi(final String code, final String client_id, final String client_secret, final String token_url, final String old_nonce) {
         final long mRequestStartTime = System.currentTimeMillis();
         final ProgressDialog mProgressDialog = new ProgressDialog(mContext);
         mProgressDialog.setMessage("Please Wait ...");
@@ -358,10 +359,34 @@ public class MobileAuthenticationVolley {
         StringRequest stringRequest = new StringRequest(Request.Method.POST, token_url + "/", new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
+                JSONObject resultJsonObject = null;
+                try {
+                    resultJsonObject = new JSONObject(response);
+                    String id_token = resultJsonObject.getString("id_token");
+                    String access_token = resultJsonObject.getString("access_token");;
+                    String[] token = id_token.split("\\.");
+                    String nonce = "";
+                    if(token.length>1)
+                    {
+                        nonce = token[1];
+                        String decode_nounce = decodeString(nonce);
+                        JSONObject jsonObject = new JSONObject(decode_nounce);
+                        String new_nonce = jsonObject.getString("nonce");
+                        String new_sub = jsonObject.getString("sub");
+                        if(new_nonce.equalsIgnoreCase(old_nonce))
+                            userSaveInfoApi(new_sub,access_token);
+                        else
+                            mMobileCallback.result(false, response);
+                    }
+                    else
+                        mMobileCallback.result(false, response);
+                }
+                catch (Exception e)
+                {e.printStackTrace();}
                 long tokenResponseTime = System.currentTimeMillis() - mRequestStartTime;
                 tokenhit = false;
                 Log.e("token APi error ", response);
-                mMobileCallback.result(true, response);
+               // mMobileCallback.result(true, response);
                 if (mProgressDialog != null && mProgressDialog.isShowing()) {
                     mProgressDialog.dismiss();
                 }
@@ -392,12 +417,91 @@ public class MobileAuthenticationVolley {
                 Map<String, String> params = new HashMap<String, String>();
                 String creds = String.format("%s:%s", client_id, client_secret);
                 String auth = "Basic " + Base64.encodeToString(creds.getBytes(), Base64.NO_WRAP);
-                params.put("Authorization", auth);
+                params.put("Authorization",auth);
                 return params;
             }
         };
         stringRequest.setRetryPolicy(new DefaultRetryPolicy(5000, DefaultRetryPolicy.DEFAULT_MAX_RETRIES, DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
         GsmaDemoApplication.getInstance().addToRequestQueue(stringRequest);
+    }
+
+    /**
+     * save info of user
+     * @param old_sub
+     * @param access_token
+     */
+    private void userSaveInfoApi( final String old_sub, final String access_token) {
+        final String url = "https://india.mconnect.wso2telco.com/oauth2/userinfo?schema=openid";
+        final ProgressDialog mProgressDialog = new ProgressDialog(mContext);
+        mProgressDialog.setMessage("Please Wait ...");
+        mProgressDialog.setCancelable(true);
+        mProgressDialog.show();
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, url, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                JSONObject resultJsonObject = null;
+                try {
+                    resultJsonObject = new JSONObject(response);
+                    String new_sub = resultJsonObject.getString("sub");
+                    if(new_sub.equalsIgnoreCase(old_sub))
+                        mMobileCallback.result(true, response);
+                    else
+                        mMobileCallback.result(false, response);
+
+                }
+                catch (Exception e)
+                {e.printStackTrace();}
+                long tokenResponseTime = System.currentTimeMillis() - mRequestStartTime;
+                Log.e("token APi error ", response);
+                // mMobileCallback.result(true, response);
+                if (mProgressDialog != null && mProgressDialog.isShowing()) {
+                    mProgressDialog.dismiss();
+                }
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                mProgressDialog.dismiss();
+                mMobileCallback.result(false, error.toString());
+                long tokenResponseTime = System.currentTimeMillis() - mRequestStartTime;
+
+            }
+
+        }) {
+            @Override
+            protected Map<String, String> getParams() {
+                Map<String, String> data = new HashMap<String, String>();
+                return data;
+            }
+
+
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError {
+                Map<String, String> params = new HashMap<String, String>();
+                params.put("Authorization", "Bearer "+access_token);
+                return params;
+            }
+        };
+        stringRequest.setRetryPolicy(new DefaultRetryPolicy(5000, DefaultRetryPolicy.DEFAULT_MAX_RETRIES, DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+        GsmaDemoApplication.getInstance().addToRequestQueue(stringRequest);
+
+
+    }
+
+
+    public String decodeString(String encoded) {
+        byte[] dataDec = Base64.decode(encoded, Base64.DEFAULT);
+        String decodedString = "";
+        try {
+
+            decodedString = new String(dataDec, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+
+        } finally {
+
+            return decodedString;
+        }
     }
 
 
